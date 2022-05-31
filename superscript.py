@@ -15,7 +15,7 @@ parser.add_argument("-c", "--conda", default="./")
 parser.add_argument("-d", "--directory", default="./superscript_output", help="Directory to send all the output files")
 parser.add_argument("-t", "--table", default=False, help="File containing a conversion table for the libraries. The format must be a csv file separated by ';' with the first column containing the names of the libraries and the second containing the name of the species. Ensure the names of the species are unique, adding some identifier if needed.")
 parser.add_argument("-a", "--aTRAM", default=False)
-parser.add_argument("--atram_program", default="trinity", choices=["trinity", "spades"])
+parser.add_argument("--atram_program", default="spades", choices=["trinity", "spades"])
 parser.add_argument("-p", "--HybPiper", default=False)
 parser.add_argument("-b", "--bait", default=False, nargs="+")
 
@@ -223,6 +223,11 @@ def hypo_dict_parse(fastqlist):
 			if os.path.exists(hypothetical):
 				hypo_dict[hypothetical] = element
 				break
+		for m in re.finditer('R2', element):
+			hypothetical = element[:m.start()]+"R1"+element[m.end():]
+			if os.path.exists(hypothetical):
+				hypo_dict[hypothetical] = element
+				break
 	return hypo_dict
 
 def format_parse(fastq):
@@ -378,7 +383,7 @@ def no_trimming(paired_list, single_list, conversion, directory, path):
 		if i[0] == '.': i = i[1:]
 		if conversion != False and destiny in conversion:
 			destiny = conversion[destiny]
-		output_string = "ln -s " + os.path.abspath(i[0]) + " " + o[0]+"/"+o[1] + "\n"
+		output_string = output_string + "ln -s " + os.path.abspath(i[0]) + " " + o[0]+"/"+o[1] + "\n"
 	return(output_string, output_list)
 
 def atram(output_list, bait, aTRAM):
@@ -390,7 +395,7 @@ def atram(output_list, bait, aTRAM):
 			N = os.path.abspath(n)
 			if os.path.isdir(o[0]+"/tmp") == False:
 				os.mkdir(o[0]+"/tmp")
-			ministring2 = ministring2 + aTRAM+"atram.py -b "+o[0]+o[0][o[0].rfind("/"):]+" -Q "+N+" -a " + args.atram_program + " -o "+o[0]+o[0][o[0].rfind("/"):]+"_"+n+" -t "+ o[0]+"/tmp\n"
+			ministring2 = ministring2 + aTRAM+"atram.py -b "+o[0]+o[0][o[0].rfind("/"):]+" -Q "+N+" -a " + args.atram_program + " -o "+o[0]+"/"+o[1][:o[1].rfind(".")]+"_"+n+" -t "+ o[0]+"/tmp\n"
 		output_string = output_string + ministring1 + ministring2
 	return (output_string)
 	
@@ -437,47 +442,5 @@ def parse_conversion_table (table):
 		ctable[chunk[0]] == ctable[chunk[1]]
 	return (cdict)
 
-def pick_longest(fastafile):
-	fa_dict = SeqIO.parse(fastafile, "fasta")
-	longest = ""
-	for i in fa_dict:
-		if len(i.seq) > len(longest):
-			longest = str(i.seq)
-	return(longest)
-
-def parse_superscript(dirinput):
-	if dirinput[-1] != "/":
-		dirinput = dirinput + "/"
-	outdir = dirinput+"parsed_seqs/"
-	if os.path.exists(outdir) == True:
-		shutil.rmtree(outdir)
-	os.makedirs(outdir)
-	for d in os.listdir(dirinput):
-		if os.path.isdir(d) == True:
-			subdir = dirinput+d+"/"
-			for f in os.listdir(subdir):
-				if f.find("filtered_contigs.fa") > -1:
-					longest = pick_longest(subdir+f)
-					a = f.split(".txt.")
-					samplename = d 
-					seqname = a[1].replace(samplename+"_", "")
-					myfasta = outdir + seqname.split(".")[0] + ".fasta"
-					
-					if os.path.exists(myfasta) == True:
-						outfile = open(myfasta, "a")
-						outfile.write(">"+samplename+"\n")
-						outfile.write(longest)
-						outfile.write("/n")
-						outfile.close()
-					else:
-						outfile = open(myfasta, "w")
-						outfile.write(">"+samplename+"\n")
-						outfile.write(longest)
-						outfile.write("/n")
-						outfile.close()
-						continue
-
 prep, output_report = preparation(args.libraries, 100, directory)
 arrange_files(prep, args.table, args.conda, directory, aTRAM, HybPiper, bait)
-parse_superscript(directory)
-
