@@ -5,8 +5,6 @@ import gzip, bz2, tarfile
 import shutil
 from Bio import SeqIO
 
-fastalist = sys.argv[1:]
-
 parser = argparse.ArgumentParser(description="")
 parser.add_argument("-T", "--trimming", default=False, choices=['fastp','trimmomatic'])
 parser.add_argument('-l', '--libraries', required=True, nargs='+', help="Fastq libraries to use. Required.")
@@ -18,6 +16,7 @@ parser.add_argument("-a", "--aTRAM", default=False)
 parser.add_argument("--atram_program", default="spades", choices=["trinity", "spades"])
 parser.add_argument("-p", "--HybPiper", default=False)
 parser.add_argument("-b", "--bait", default=False, nargs="+")
+parser.add_argument("--compression", default="", choices=["gzip", "bzip"])
 
 args = parser.parse_args()
 here = os.path.abspath("./")
@@ -388,8 +387,13 @@ def no_trimming(paired_list, single_list, conversion, directory, path):
 
 def atram(output_list, bait, aTRAM):
 	output_string = '\necho "Configuring commands for aTRAM..."'+'\n\n'
+	if args.compression == "bzip":
+		comp = " --bzip "
+	elif args.compression == "gzip":
+		comp = " --gzip "
+	else: comp = ""
 	for o in output_list:
-		ministring1 = aTRAM+"atram_preprocessor.py -b "+o[0]+o[0][o[0].rfind("/"):]+" --end-1 "+ o[0]+"/"+o[1]+" --end-2 "+o[0]+"/"+o[1]+"\n"
+		ministring1 = aTRAM+"atram_preprocessor.py -b "+o[0]+o[0][o[0].rfind("/"):]+" --end-1 "+ o[0]+"/"+o[1]+" --end-2 "+o[0]+"/"+o[1]+comp+"\n"
 		ministring2 = ""
 		for n in bait:
 			N = os.path.abspath(n)
