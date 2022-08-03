@@ -9,14 +9,14 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument("-T", "--trimming", default=False, choices=['fastp','trimmomatic'])
 parser.add_argument('-l', '--libraries', required=True, nargs='+', help="Fastq libraries to use. Required.")
 parser.add_argument("-x", "--trimmomatic_commands", default="")
-parser.add_argument("-c", "--conda_bin", default="./", help="bin directory for your conda installation.")
+parser.add_argument("-c", "--conda", default="./", help="bin directory for your conda installation.")
 parser.add_argument("-d", "--directory", default="./superscript_output", help="Directory to send all the output files")
 parser.add_argument("-t", "--table", default=False, help="File containing a conversion table for the libraries. The format must be a csv file separated by ';' with the first column containing the names of the libraries and the second containing the name of the species. Ensure the names of the species are unique, adding some identifier if needed.")
 parser.add_argument("-a", "--aTRAM", default=False, help="Directory containing aTRAM")
 parser.add_argument("--atram_program", default="spades", choices=["trinity", "spades"])
 parser.add_argument("-p", "--HybPiper", default=False)
 parser.add_argument("-b", "--bait", default=False, nargs="+")
-parser.add_argument("--compression", default="", choices=["gzip", "bzip"])
+parser.add_argument("-z", "--compression", default="", choices=["gzip", "bzip"])
 
 args = parser.parse_args()
 here = os.path.abspath("./")
@@ -346,13 +346,15 @@ def fastp (paired_list, single_list, conversion, directory, path):
 	for i in paired_list:
 		if i[0].find('./') == 0 : i[0] = i[0][2:]
 		if i[1].find('./') == 0 : i[1] = i[1][2:]
+		print (i[0], i[1])
 		destiny_list = i[0][i[0].rfind("/")+1:].replace(".", " ").split()
 		destiny = destiny_list[0]
 		if conversion != False and destiny in conversion:
 			destiny = conversion[destiny]
-		o = [directory+destiny, i[0][:i[0].rfind(".")]+"_parsed_paired.fq", i[1][:i[1].rfind(".")]+"_parsed_paired.fq"]
+		o1, o2 = i[0][i[0].rfind("/")+1:], i[1][i[1].rfind("/")+1:]
+		o = [directory+destiny, o1[:o1.rfind(".")]+"parsed_paired.fq", o2[:o2.rfind(".")]+"parsed_paired.fq"]		
 		os.mkdir(directory+destiny)
-		output_string = output_string + path + "bin/fastp -i " + os.path.abspath(i[0]) + " -I " + os.path.abspath(i[1]) + " -o " + o[0]+"/"+o[1] + " -O " + o[0]+"/"+o[2] + " --detect_adapter_for_pe\n"
+		output_string = output_string + path + "bin/fastp -i " + os.path.abspath(i[0]) + " -I " + os.path.abspath(i[1]) + " -o " + o[0]+"/"+o[1].split("/")[-1]+".gz" + " -O " + o[0]+"/"+o[2].split("/")[-1]+".gz" + " --detect_adapter_for_pe\n"
 		output_list.append(o)
 
 	for i in single_list:
@@ -365,6 +367,10 @@ def fastp (paired_list, single_list, conversion, directory, path):
 def no_trimming(paired_list, single_list, conversion, directory, path):
 	output_string = ''
 	output_list = []
+	suf = ""
+	if args.compression == "gzip" and args.trimming == False:
+		comp = " --gzip "
+		suf = ".gz"
 	for i in paired_list:
 		if i[0].find('./') == 0 : i[0] = i[0][2:]
 		if i[1].find('./') == 0 : i[1] = i[1][2:]
@@ -373,7 +379,7 @@ def no_trimming(paired_list, single_list, conversion, directory, path):
 		if conversion != False and destiny in conversion:
 			destiny = conversion[destiny]
 		o1, o2 = i[0][i[0].rfind("/")+1:], i[1][i[1].rfind("/")+1:]
-		o = [directory+destiny, o1[:o1.rfind(".")]+".fq", o2[:o2.rfind(".")]+".fq"]
+		o = [directory+destiny, o1[:o1.rfind(".")]+".fq"+suf, o2[:o2.rfind(".")]+".fq"+suf]
 		os.mkdir(directory+destiny)
 		output_string = output_string + "ln -s " + os.path.abspath(i[1]) + " " + o[0]+"/"+o[1] + "\nln -s " + os.path.abspath(i[1]) + " " + o[0]+"/"+o[2][o[2].rfind("/")+1:] + "\n"
 		output_list.append(o)
@@ -387,19 +393,19 @@ def no_trimming(paired_list, single_list, conversion, directory, path):
 
 def atram(output_list, bait, aTRAM):
 	output_string = '\necho "Configuring commands for aTRAM..."'+'\n\n'
-	if args.compression == "bzip":
-		comp = " --bzip "
-	elif args.compression == "gzip":
+	suf = ""
+	if args.trimming == "fastp":
 		comp = " --gzip "
+		suf = ".gz"
 	else: comp = ""
 	for o in output_list:
-		ministring1 = aTRAM+"atram_preprocessor.py -b "+o[0]+o[0][o[0].rfind("/"):]+" --end-1 "+ o[0]+"/"+o[1]+" --end-2 "+o[0]+"/"+o[1]+comp+"\n"
+		ministring1 = aTRAM+"atram_preprocessor.py -b "+o[0]+o[0][o[0].rfind("/"):]+" --end-1 "+o[0]+"/"+o[1]+suf+" --end-2 "+o[0]+"/"+o[2]+suf+comp+" -t "+ o[0]+"/tmp\n"
 		ministring2 = ""
 		for n in bait:
 			N = os.path.abspath(n)
 			if os.path.isdir(o[0]+"/tmp") == False:
 				os.mkdir(o[0]+"/tmp")
-			ministring2 = ministring2 + aTRAM+"atram.py -b "+o[0]+o[0][o[0].rfind("/"):]+" -Q "+N+" -a " + args.atram_program + " -o "+o[0]+"/"+o[1][:o[1].rfind(".")]+"_"+n+" -t "+ o[0]+"/tmp\n"
+			ministring2 = ministring2 + aTRAM+"atram.py -b "+o[0]+o[0][o[0].rfind("/"):]+" -Q "+N+" -a " + args.atram_program + " -o "+o[1][:o[1].rfind(".")]+"_"+n[n.rfind("/")+1:]+" -t "+ o[0]+"/tmp\n"
 		output_string = output_string + ministring1 + ministring2
 	return (output_string)
 	
