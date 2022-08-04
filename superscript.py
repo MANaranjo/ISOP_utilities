@@ -405,7 +405,7 @@ def atram(output_list, bait, aTRAM):
 			N = os.path.abspath(n)
 			if os.path.isdir(o[0]+"/tmp") == False:
 				os.mkdir(o[0]+"/tmp")
-			ministring2 = ministring2 + aTRAM+"atram.py -b "+o[0]+o[0][o[0].rfind("/"):]+" -Q "+N+" -a " + args.atram_program + " -o "+o[1][:o[1].rfind(".")]+"_"+n[n.rfind("/")+1:]+" -t "+ o[0]+"/tmp\n"
+			ministring2 = ministring2 + aTRAM+"atram.py -b "+o[0]+o[0][o[0].rfind("/"):]+" -Q "+N+" -a " + args.atram_program + " -o "+o[0]+"/"+o[1][:o[1].rfind(".")]+"_"+n[n.rfind("/")+1:]+" -t "+ o[0]+"/tmp\n"
 		output_string = output_string + ministring1 + ministring2
 	return (output_string)
 	
