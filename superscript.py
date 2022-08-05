@@ -343,6 +343,8 @@ def trimmomatic (paired_list, single_list, conversion, directory, path):
 def fastp (paired_list, single_list, conversion, directory, path):
 	output_string = '\necho "Configuring commands for fastp..."'+'\n\n'
 	output_list = []
+	if args.conda.split("/")[-1] == "bin": qbin = ""
+	else: qbin = "bin/"
 	for i in paired_list:
 		if i[0].find('./') == 0 : i[0] = i[0][2:]
 		if i[1].find('./') == 0 : i[1] = i[1][2:]
@@ -354,14 +356,14 @@ def fastp (paired_list, single_list, conversion, directory, path):
 		o1, o2 = i[0][i[0].rfind("/")+1:], i[1][i[1].rfind("/")+1:]
 		o = [directory+destiny, o1[:o1.rfind(".")]+"parsed_paired.fq", o2[:o2.rfind(".")]+"parsed_paired.fq"]		
 		os.mkdir(directory+destiny)
-		output_string = output_string + path + "bin/fastp -i " + os.path.abspath(i[0]) + " -I " + os.path.abspath(i[1]) + " -o " + o[0]+"/"+o[1].split("/")[-1]+".gz" + " -O " + o[0]+"/"+o[2].split("/")[-1]+".gz" + " --detect_adapter_for_pe\n"
+		output_string = output_string + path + qbin + "fastp -i " + os.path.abspath(i[0]) + " -I " + os.path.abspath(i[1]) + " -o " + o[0]+"/"+o[1].split("/")[-1]+".gz" + " -O " + o[0]+"/"+o[2].split("/")[-1]+".gz" + " --detect_adapter_for_pe\n"
 		output_list.append(o)
 
 	for i in single_list:
 		if i[0] == '.': i = i[1:]
 		if conversion != False and destiny in conversion:
 			destiny = conversion[destiny]
-		output_string = output_string + path + "bin/fastp -i " + os.path.abspath(i[0]) + " -I " + os.path.abspath(i[1]) + " -o "+directory+destiny+"/"+destiny+"_parsed_single"+"\n"
+		output_string = output_string + path + qbin + "fastp -i " + os.path.abspath(i[0]) + " -I " + os.path.abspath(i[1]) + " -o "+directory+destiny+"/"+destiny+"_parsed_single"+"\n"
 	return(output_string, output_list)
 
 def no_trimming(paired_list, single_list, conversion, directory, path):

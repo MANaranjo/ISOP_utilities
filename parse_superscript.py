@@ -3,9 +3,10 @@ import shutil
 from Bio import SeqIO
 
 parser = argparse.ArgumentParser(description="")
-parser.add_argument("-d", "--directory", default="./", help="Directory to send all the output files")
+parser.add_argument("-d", "--directory", default="./", help="Directory output from superscript.py")
 parser.add_argument("-m", "--missing", default=0, help="Maximum number of missing species per sequence that will be accepted")
 parser.add_argument("-c", "--clipkit", default=False, action="store_true", help="When set, the output job file will contain commands to launch clipkit on individual ")
+parser.add_argument("-q", "--query_file", default = "something.fasta", help="Query file used to search the sequences. This is only used to process the names of the files by using the file extension")
 
 
 args = parser.parse_args()
@@ -28,6 +29,7 @@ def pick_longest(fastafile):
 	return(longest)
 
 def parse_superscript(dirinput):
+	s = args.query[args.query.find("."):]+"."
 	if dirinput[-1] != "/": 
 		dirinput = dirinput + "/"
 	outdir = dirinput+"parsed_seqs/"
@@ -40,7 +42,7 @@ def parse_superscript(dirinput):
 			for f in os.listdir(subdir):
 				if f.find("filtered_contigs.fa") > -1:
 					longest = pick_longest(subdir+f)
-					a = f.split(".txt.")
+					a = f.split(s)
 					samplename = d 
 					seqname = a[1].replace(samplename+"_", "")
 					myfasta = outdir + seqname.split(".")[0] + ".fasta"
