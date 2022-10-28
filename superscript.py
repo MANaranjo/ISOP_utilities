@@ -1,4 +1,3 @@
-from Bio import SeqIO
 import sys, argparse, os, re
 import numpy
 import gzip, bz2, tarfile
@@ -361,9 +360,15 @@ def fastp (paired_list, single_list, conversion, directory, path):
 
 	for i in single_list:
 		if i[0] == '.': i = i[1:]
+		destiny_list = i[0][i[0].rfind("/")+1:].replace(".", " ").split()
+		destiny = destiny_list[0]
+		if i[0] == '.': i = i[1:]
 		if conversion != False and destiny in conversion:
 			destiny = conversion[destiny]
-		output_string = output_string + path + qbin + "fastp -i " + os.path.abspath(i[0]) + " -I " + os.path.abspath(i[1]) + " -o "+directory+destiny+"/"+destiny+"_parsed_single"+"\n"
+		o = [directory+destiny, i[0][i[0].rfind("/")+1:], "single"]
+		os.mkdir(directory+destiny)
+		output_string = output_string + path + qbin + "fastp -i " + os.path.abspath(i) + " -o "+o[0]+"/"+destiny+"_parsed_single"+"\n"
+		output_list.append(o)
 	return(output_string, output_list)
 
 def no_trimming(paired_list, single_list, conversion, directory, path):
@@ -387,10 +392,15 @@ def no_trimming(paired_list, single_list, conversion, directory, path):
 		output_list.append(o)
 
 	for i in single_list:
+		destiny_list = i[i.rfind("/")+1:].replace(".", " ").split()
+		destiny = destiny_list[0]
 		if i[0] == '.': i = i[1:]
 		if conversion != False and destiny in conversion:
 			destiny = conversion[destiny]
-		output_string = output_string + "ln -s " + os.path.abspath(i[0]) + " " + o[0]+"/"+o[1] + "\n"
+		o = [directory+destiny, i[i.rfind("/")+1:], "single"]
+		os.mkdir(directory+destiny)
+		output_string = output_string + "ln -s " + os.path.abspath(i) + " " + o[0]+"/"+o[1] + "\n"
+		output_list.append(o)
 	return(output_string, output_list)
 
 def atram(output_list, bait, aTRAM):
@@ -399,9 +409,14 @@ def atram(output_list, bait, aTRAM):
 	if args.trimming == "fastp":
 		comp = " --gzip "
 		suf = ".gz"
+	if args.compression == "gzip":
+		comp = " --gzip"
 	else: comp = ""
 	for o in output_list:
-		ministring1 = aTRAM+"atram_preprocessor.py -b "+o[0]+o[0][o[0].rfind("/"):]+" --end-1 "+o[0]+"/"+o[1]+suf+" --end-2 "+o[0]+"/"+o[2]+suf+comp+" -t "+ o[0]+"/tmp\n"
+		if o[-1] == "single":
+			ministring1 = aTRAM+"atram_preprocessor.py -b "+o[0]+o[0][o[0].rfind("/"):]+" --single-end "+o[0]+"/"+o[1]+suf+comp+" -t "+ o[0]+"/tmp --fastq\n"
+		else:
+			ministring1 = aTRAM+"atram_preprocessor.py -b "+o[0]+o[0][o[0].rfind("/"):]+" --end-1 "+o[0]+"/"+o[1]+suf+" --end-2 "+o[0]+"/"+o[2]+suf+comp+" -t "+ o[0]+"/tmp  --fastq\n"
 		ministring2 = ""
 		for n in bait:
 			N = os.path.abspath(n)

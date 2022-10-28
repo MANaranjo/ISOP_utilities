@@ -29,7 +29,7 @@ def pick_longest(fastafile):
 	return(longest)
 
 def parse_superscript(dirinput):
-	s = args.query[args.query.find("."):]+"."
+	s = args.query_file[os.path.abspath(args.query_file).find("."):]+"."
 	if dirinput[-1] != "/": 
 		dirinput = dirinput + "/"
 	outdir = dirinput+"parsed_seqs/"
@@ -46,7 +46,6 @@ def parse_superscript(dirinput):
 					samplename = d 
 					seqname = a[1].replace(samplename+"_", "")
 					myfasta = outdir + seqname.split(".")[0] + ".fasta"
-					
 					if os.path.exists(myfasta) == True:
 						outfile = open(myfasta, "a")
 						outfile.write(">"+samplename+"\n")
